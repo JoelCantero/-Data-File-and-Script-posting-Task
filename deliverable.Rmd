@@ -1,0 +1,96 @@
+---
+title: "document"
+author: "Joel Cantero Priego"
+date: "18/3/2019"
+output: html_document
+---
+```{r load-packages}
+library(mice)
+```
+
+## Loading dataset and imputation miss values with MICE.
+
+In this exercise we will use the Russet data set. In 1964 Russet tried to find the relation between political instability of countries and the economical and agricultural inequality. Russett collected this data to study relationships between Agricultural Inequality, Industrial Development and Political Instability. Russett's hypotheses can be formulated as follows: It is difficult for a country to escape dictatorship when its agricultural inequality is above-average and its industrial
+development below-average.
+
+The collected data refer to 47 countries and 9 variables on the period after the Second World War (???1945-1962). The Russett data set (Russett, 1964) are studied in Gifi (1990).
+ 
+First of all, we are going to read 'Russet_ineqdata.txt' and put it to X variable. We have to set some parameters to read.table to function to indicate that:
+1. This file has a header (header=T).
+2. The rows file are separated by tabulation (sep='\t').
+3. The first column contains the row names, they are not an attribute (row.names=1).
+
+First of all, we are going to read again the Russet completed data set. So we have to read the original table and then we are going to impute the NA values. For this reason, before using MICE, we are going to convert demo attribute as a level (0: Stable, 1: Instable, 3: Dictatorship), MICE will impute better if we use demo as a level factor before we impute it. We will use md.pattern function that is useful for investigating any structure of missing observations in the data (there are two NA values). This mentioned function pertains to mice package. 
+
+```{r upload-data}
+X <- read.table('Russet_ineqdata.txt', header=T, sep='\t', row.names=1)
+X$demo <- as.factor(X$demo)
+levels(X$demo) = c("Stable", "Instable", "Dictatorship")
+md.pattern(X)
+```
+
+Thanks to md.pattern function, we can see there is some NA values that we have to deal with them. Once we have demo variable as a level, we can impute NA values using MICE function. We are going to use md.pattern again to ensure us that there is not any missing value left. 
+
+```{r using-mdpattern}
+imputedX <- complete(mice(X))
+imputedX
+md.pattern(imputedX)
+```
+Once we have our imputed data, we are going to remove demo attribute level factor. Because we are going to use PCA, we are just interested in continuous variables. We are going to define our X.matrix defined by the continuous variables just using matrix operation.
+
+```{r xmatrix}
+X.matrix <- as.matrix(imputedX[,0:8])
+X.matrix
+```
+
+## a. Define the matrix N of weights of individuals (with uniform weights).
+
+Once we have our complete dataset, we are going to define our weights vector with uniform weights (1) thanks to rep function. Rep functions will replicate a value as many times we set (number of rows of X.matrix).
+
+```{r weights}
+weights <- rep(1,nrow(X.matrix))
+sum(weights)
+N <- diag(weights/sum(weights))
+N
+```
+
+## b. Compute the centroid G of individuals
+
+```{r centroid-g}
+G <-  colMeans(X.matrix)
+G
+```
+## c. Compute the covariance or correlation matrix of X (be aware of dividing by sum(weights_i)).
+
+```{r covariance-correlation}
+X.covariance <- cov(X.matrix)/sum(weights)
+X.centered <- scale(X.matrix, scale=FALSE)
+X.cov.manual <- (t(X.centered)%*%N%*%X.centered)/sum(weights)
+
+X.cor <- cor(X.matrix)/sum(weights)
+X.standarized <- scale(X.matrix, center = FALSE, scale=TRUE)
+X.cor.manual <- (t(X.standarized)%*%N%*%X.standarized)/sum(weights)
+```
+
+## d. Compute the centered X matrix and standardized X matrix.
+
+```{r centered-matrix}
+X.centered <- scale(X.matrix, scale=FALSE)
+X.standarized <- scale(X.matrix, center = FALSE, scale=TRUE)
+```
+
+## e. Diagonalize X centered and standarized .
+
+```{r diagonalize-matrix}
+X.centered.eig <- eigen(t(X.centered)%*%N%*%X.centered)
+X.centered.eig$values
+
+X.standarized.eig <- eigen(t(X.standarized)%*%N%*%X.standarized)
+X.standarized.eig$values
+```
+
+##f. Do the screeplot of the eigenvalues and define the number of significant dimensions. How much is the retained information?
+```{r diagonalize-matrix}
+plot(X.centered.eig$values, type = "l")
+plot(X.standarized.eig$values, type = "l")
+```
