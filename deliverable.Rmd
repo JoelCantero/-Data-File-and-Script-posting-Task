@@ -309,3 +309,8 @@ We can observe that in second dimensions does not exist any variables that are i
 pca$ind$coord <- pca$ind$coord[,1:2] %*% PC.ROT$rotmat
 FactoMineR::dimdesc(pca, axes=1:2)
 ```
+## Conclusion
+
+As we have seen on each question, we can obtain many useful information through a PCA Analysis. It allows us to summarize and to visualize the information in a data set containing individuals/observations described by multiple inter-correlated quantitative variables.
+
+Thanks to R functions and plot capabilities we can extract information reducing the dimensionality of a multivariate data to two principal components, that can be visualized graphically.
