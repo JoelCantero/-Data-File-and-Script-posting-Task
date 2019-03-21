@@ -1,12 +1,12 @@
 ---
 title: "Practice of PCA"
-author: "Marc Méndez Roca & Joel Cantero Priego"
+author: "Marc Mendez Roca & Joel Cantero Priego"
 date: "18/3/2019"
 output:
-  html_document: default
   pdf_document: default
+  html_document: default
 ---
-```{r message=FALSE}
+```{r message=FALSE, echo = FALSE}
 library(mice)
 source("PCA.R")
 ```
@@ -16,14 +16,14 @@ source("PCA.R")
 In this exercise we will use the Russet data set. In 1964 Russet tried to find the relation between political instability of countries and the economical and agricultural inequality. Russett collected this data to study relationships between Agricultural Inequality, Industrial Development and Political Instability. Russett's hypotheses can be formulated as follows: It is difficult for a country to escape dictatorship when its agricultural inequality is above-average and its industrial
 development below-average.
 
-The collected data refer to 47 countries and 9 variables on the period after the Second World War (1945-1962). The Russett data set (Russett, 1964) are studied in Gifi (1990).
+The collected data refer to 47 countries and 8 variables and a factor named 'demo', on the period after the Second World War (1955-1962). The Russett data set (Russett, 1964) are studied in Gifi (1990).
  
 First of all, we are going to read 'Russet_ineqdata.txt' and put it to X variable. We have to set some parameters to read.table to function to indicate that:
 1. This file has a header (header=T).
 2. The rows file are separated by tabulation (sep='\t').
 3. The first column contains the row names, they are not an attribute (row.names=1).
 
-First of all, we are going to read again the Russet completed data set. So we have to read the original table and then we are going to impute the NA values. For this reason, before using MICE, we are going to convert demo attribute as a level (0: Stable, 1: Instable, 3: Dictatorship), MICE will impute better if we use demo as a level factor before we impute it. We will use md.pattern function that is useful for investigating any structure of missing observations in the data (there are two NA values). This mentioned function pertains to mice package. 
+First of all, we are going to read again the Russet completed data set. So we have to read the original table and then we are going to impute the NA values. For imputing all the variables are taken into account so, before using MICE, we are going to convert demo attribute as a factor (0: Stable, 1: Instable, 3: Dictatorship). By doing this, MICE imputations will be also based on 'demo'. We will use md.pattern function that is useful for investigating any structure of missing observations in the data (there are two NA values). We can se the NA values what combination they have. In our case, we have 3 missing values on Rent and one on ecks. 
 
 ```{r upload}
 X <- read.table('Russet_ineqdata.txt', header=T, sep='\t', row.names=1)
@@ -31,25 +31,27 @@ X$demo <- as.factor(X$demo)
 levels(X$demo) = c("Stable", "Instable", "Dictatorship")
 ```
 
-```{r using-mdpattern-plot}
-md.pattern(X)
+```{r using-mdpattern-plot, echo = FALSE}
+plot <- md.pattern(X)
 ```
-Thanks to md.pattern function, we can see there is some NA values that we have to deal with them. Once we have demo variable as a level, we can impute NA values using MICE function. We are going to use MICE function because it imputes the missing values of the variable from the predicted values of the regression of the current variable with the remaining ones (similar to lineal regression imputation).
 
-```{r using-mdpattern}
+To see if the imputation have sense we will look at the data in particular Norvege which its ecks value should be 0 as there were no violent conflicts arround those dates. For doing the imputation should be something similar to what we had last homework.
+
+```{r using-mdpattern, message = FALSE, results = 'hide'}
 imputedX <- complete(mice(X))
 row.names(imputedX) <- row.names(X)
 
 ```
-Once we have our imputed data, we are going to remove demo attribute level factor. Because we are going to use PCA, we are just interested in continuous variables. We are going to define our X.matrix defined by the continuous variables just using matrix operation.
+Once we have our imputed data, we are going to remove demo attribute as the X matrix is defined by the continuous variables only. With this we achieve a matrix 47x8 with continuous variables.
 
 ```{r xmatrix}
 X.matrix <- as.matrix(imputedX[,0:8])
 ```
-## 1. PCA function
+## 2. PCA function
+In this second exercise we are asked to make a function but later we are going to modify it and make it dependent to some parameters(weights, euclidian) For this first part we are going to show little by little how is it done.
 ### a. Define the matrix N of weights of individuals (with uniform weights).
 
-Once we have our complete dataset, we are going to define our weights vector with uniform weights (1) thanks to rep function. Rep functions will replicate a value as many times we set (number of rows of X.matrix). Then, we are going to define our N of weights of individuals thanks to diag function, that it will put our values (weights/sum(weights)) to matrix diagonal.
+Once we have our complete dataset, we are going to define our weights vector with uniform weights (1) thanks to rep function. Rep functions will replicate a value as many times we set (number of rows of X.matrix). Then, we are going to normalize the weights(in this example all rows have the same), and last step is to define our N of weights of individuals with diag function, that it will put our normalized values (weights/sum(weights)) to the diagonal.
 
 
 ```{r weights}
@@ -60,7 +62,7 @@ N <- diag(weights)
 
 ### b. Compute the centroid G of individuals.
 
-Once we have calculated the matrix N of weights, we are going to calculate our centroid G, using colMeans function. This function calculates the mean of all column values.
+Once we have calculated the matrix N of weights, we are going to calculate our centroid G, using our function which considers the weights for doing the mean. As said before for this part is not necessary but when we have different weights this piece of code gives less importance to rows with lower weight. Here we have the wieghted means, which will be the same as the values for the colMeans but only in this exercise.
 
 ```{r centroid-g}
 G = vector()
@@ -72,19 +74,22 @@ G
 
 ### c. Compute the covariance or correlation matrix of X (be aware of dividing by sum(weights_i)).
 
-Using cov function we are going to calculate the covariance matrix of X, always dividing our X values to sum(weights). On the other hand, we are going to use cor function to calculate the correlation matrix of X. 
+For doing the computation of covariance and correlation, first we need to compute X centered and X standarized. To see that look at part d) which asks exactly this. 
+Once we have the X centered which is nothing more than the substraction of the X.matrix by the mean of each column, then we need to apply the next formula (X^t*N*X) and then remember to divide by weights. 
 
-We can do it in two ways: using R functions or doing by ourselves manually. As we can see, both ways give us the same result.
+Depending on the metrics we need we would have to calculate the other option.As said before, X standarized is explained on part d). The function scale does it in a simple way.
+The selector is done for the exercise 3 to execture faster.
 
 ```{r covariance-correlation}
 X.centered <- X.matrix - rep(G, rep.int(nrow(X.matrix), ncol(X.matrix)))
 X.covariance = (t(X.centered)%*%N%*%X.centered)/sum(weights)
+
 X.standarized <- scale(X.matrix)
 X.correlation <- (t(X.standarized)%*%N%*%X.standarized)/sum(weights)
 
-euclidean <- TRUE
+normalized <- TRUE
 
-if (euclidean) {
+if (normalized) {
   X <- X.standarized
   S <- X.correlation
 } else {
@@ -94,139 +99,176 @@ if (euclidean) {
 ```
 
 ### d. Compute the centered X matrix and standardized X matrix.
-
+X centered is substracting the mean of each column to the matrix.
+X standarized is calculated with X centered and dividing each column for the standart deviation(sd).
 ```{r centered-matrix}
 X.centered <- X - rep(G, rep.int(nrow(X), ncol(X)))
 X.standarized <- scale(X, center = FALSE, scale=TRUE)
 ```
 
 ### e. Diagonalize XtNX, with X centered and X standardized.
+To obtain the eigen vectors and values we used svd() instead of eigen(), as the second one sometimes gives errors. We compute the Singular value Decomposition and from the result we can obtain the Eigen Vectors and Eigen Values.
+S depends if we are working with normalized values or not will be correlation or covariance.
 
 ```{r diagonalize-matrix}
 X.svd <- svd(S)
-X.values = X.svd$d
+X.values <- X.svd$d
 X.vector <- X.svd$u
 ```
 
 ###f. Do the screeplot of the eigenvalues and define the number of significant dimensions. How much is the retained information?
-```{r eigenvalues-screeplot}
+
+```{r eigenvalues-screeplot, echo = FALSE}
 plot(X.values, type = "l", main="Screeplot of Russet")
+percentage <- ((X.values[1]+X.values[2])/sum(X.values))
+percentage
 ```
+If we look at this plot by the right elbow rule we can consider 2 significant components(55%).
 
 ###g. Compute the projections of individuals in the significant dimensions.
+To do this part is applying the formula to calculate the PSI.
 ```{r projections-individuals}
 PSI <- X %*% X.vector
 ```
+
 ###h. Compute the projection of variables in the significant dimensions.
+In this part we also apply the formula but in this case is for finding the PHI.
 ```{r projections-variables}
-
-
 PHI <- sqrt(X.values)*X.vector
-PHI
 ```
-###i. Plot the individuals in the first factorial plane of Rp. Color the individuals according the “demo” variable.
-```{r plot-individuals}
-plot(PSI, col=c('green', 'orange', 'red')[imputedX$demo])
-legend(x="topright", legend=c('Stable', 'Instable', 'Dictatorship'), fill=c('green', 'orange', 'red'))
+###i. Plot the individuals in the first factorial plane of Rp. Color the individuals according the demo variable.
+```{r plot-individuals, echo = FALSE}
+plot(PSI, col=c('green', 'blue', 'red')[imputedX$demo])
+legend(x="topright", legend=c('Stable', 'Instable', 'Dictatorship'), fill=c('green', 'blue', 'red'))
 ```
-###j. Plot the variables (as arrows) in the first factorial plane of Rn
-```{r plot-variables-as-arrows}
+
+###j. Plot the variables (as arrows) in the first factorial plane of Rn.
+
+```{r plot-variables-as-arrows, message = FALSE, echo = FALSE}
 originx <- rep(0, ncol(PHI))
 originy <- rep(0, ncol(PHI))
-plot(PHI, xlim=c(min(PHI), max(PHI)), ylim=c(min(PHI), max(PHI)))
+X = imputedX[,1:8]
+etiq = names(X)
+plot(PHI, xlim=c(0,0), ylim=c(0,0))
+text(PHI,labels=etiq, col="black")
 arrows(originx, originy, PHI[,1], PHI[,2])
+abline(h=0,v=0,col="gray")
 ```
 ###k. According to the Russet complete data, justify which metric M is appropriate for this problem.
 
-Standarized is the special one because it is more dispars
-
+Standarized as we have different metrics and weights so the need to normalize the data is what leads us to do by this way.
 ###l. Compute the correlation of the variables with the significant principal components and interpret them.
 
-
-
-```{r compute-correlation-variables}
+This matrix gives information about the correlation of the PSI with the X original values making them high correlated we can explain its behaviour through other rows.
+```{r compute-correlation-variables, message = FALSE, echo = FALSE}
 COR <-cor(X, PSI)
-plot(COR)
-arrows(originx, originy, COR[,1], COR[,2])
 ```
 
 ## 3. Redo 2, but taking the weight of Cuba equal to 0.
 
 Now, we are going to use our PCA function (that it is on PCA.R) but taking the weight of Cuba equal to 0. 
-```{r using-Cuba}
+```{r using-Cuba, echo = FALSE, include = FALSE, fig.show = 'hide'}
 weights <- rep(1,nrow(X.matrix))
 weights[11] <-0
 weights <- weights/sum(weights) #Normalized
-PCA(X.matrix, weights, eucledian=TRUE)
+Cor.Cuba <- PCA(X.matrix, weights, eucledian=TRUE)
 ```
 
 ## 4. Now, study the sensibility of the performed PCA respect to considering Cuba as an outlier. Compute the correlations of the obtained significant principal components (Cuba 0 weight) with the previous obtained ones (all cases equal weights).
-
-```{r cuba-outlier}
-weights <- rep(1,nrow(X.matrix))
-weights[11] <-0
-PCA(X.matrix, weights, eucledian=TRUE)
+This table explains the correlation of the data with the normal weights and then discarting the outlier Cuba with wieght 0 so if a position is highly correlated means Cuba had no impact on making the correlations.
+```{r correlation-Cuba, echo = FALSE}
+cor(COR, Cor.Cuba)
 ```
 
-## 5. Do again the PCA, but now using the library “FactoMineR” (be aware of using the completed data file with the “demo” factor as illustrative and the selected Metric).
 
-```{r factor-miner}
+## 5. Do again the PCA, but now using the library FactoMineR (be aware of using the completed data file with the demo factor as illustrative and the selected Metric).
+Now, using the pca function pertaining to FactoMineR library, we can obtain pca plot in just few steps:
+1. Calling PCA function with some parameters: ncp equals to 8 (just the number of dimensions of X.FactoMineR) and quali.sup equals to 9. We are using a dataset (X.FactoMineR) that contains our completed data file with the demo factor, and obviously, without missing values. Then, we can plot and see the result.
+
+```{r factor-miner, echo = FALSE, fig.show = 'hide'}
 X.FactoMineR <- imputedX
 pca <- FactoMineR::PCA(graph=T, X.FactoMineR, ncp=8, quali.sup=9)
+```
+```{r factor-miner2, echo = FALSE}
 plot(pca, cex=0.8, habillage='demo')
 ```
 
-
 ## 6. What is the country best represented in the first factorial plane?. And what is the worse?.
 
-The best country represented in the first factorial plane is Yougoslavie and the worst one is Autriche.
+In pca$ind$cos2 we can find the values that indicates the variables representation in the factorial plane. In this particular case, we just want to know the best and worst represented country in the first factorial plane. For this reason, we are just going to sum the first and second dimension and then sort the result vector. The best country represented in the first factorial plane is Luxembourg and the worst one is Espagne
 
-```{r factorial-plane}
+```{r factorial-plane, echo = FALSE}
 firstFactorialPlane <- sort(abs(pca$ind$cos2[,1])+abs(pca$ind$cos2[,2]), decreasing=TRUE)
 bestCountry <- firstFactorialPlane[1]
 worseCountry <- firstFactorialPlane[length(firstFactorialPlane)]
+bestCountry
+worseCountry
 ```
 
 ## 7. What are the three countries most influencing the formation of the first principal component?, and what are the three countries most influencing the formation of the second principal component?
 
-```{r most-influencing}
+On the other hand, no we are going to see the values in pca$ind$contrib that contains the influence of the principal component. As we done in the previous section, we are going to sort the first column to see the three most influencing countries of the first principal component and the second column to see it on the second one. If we select the first three rows of our sorted vector, we are going to select the 3 most influent countries in every case. The most influencing from the first one are: Cuba, Suisse and Canada. In the second plane, that corresponds to: Yougoslavie, Indie and Etats-Units.
+
+```{r most-influencing, echo = FALSE}
 contribPCA <- pca$ind$contrib
 contribPCA.1 <- sort(abs(contribPCA[,1]), decreasing=TRUE)
 contribPCA.2 <- sort(abs(contribPCA[,2]), decreasing=TRUE)
 bestCountries.1 <- contribPCA.1[1:3]
 bestCountries.2 <- contribPCA.2[1:3]
+bestCountries.1
+bestCountries.2
 ```
 ## 8. What is the variable best represented in the first factorial plane?. And what is the worse?.
+Now we are going to see the best represented variables checking the values of $var$cos2 (instead of $ind$cos2 that indicates the variables). We have to add the first and second row and sort it decreasly to have the best one in the first row and the worst one in the last row. The best represented variable is Gini and the worst one is Rent.
 
-```{r variable-represented}
+```{r variable-represented, echo = FALSE}
 variableRepresented <- sort(abs(pca$var$cos2[,1])+abs(pca$var$cos2[,2]), decreasing=TRUE)
 best <- variableRepresented[1]
 worse <- tail(variableRepresented, n=1)
+best
+worse
 ```
 
 ## 9. What are the three variables most influencing the formation of the first principal component?, and what are the three variables most influencing the formation of the second principal component?
-```{r three-variables-most-influencing}
+In this particular case, we are going to see the values of pca$var$contrib and sort the first and second row to obtain the three most influencing variables of the first and second principal component. In this case, the three most influencing variables in the first principal component are farm, Gini and Gnpr. In the second principal component are Laboagr, Gnpr and Gini.
+
+```{r three-variables-most-influencing, echo = FALSE}
 firstPrincipalComponent <- sort(abs(pca$var$contrib[,1]), decreasing=TRUE)
 secondPrincipalComponent <- sort(abs(pca$var$contrib[,2]), decreasing=TRUE)
 mostInfluencingVariablesFirst <- firstPrincipalComponent[1:3]
 mostInfluencingVariablesSecond <- secondPrincipalComponent[1:3]
+mostInfluencingVariablesFirst
+mostInfluencingVariablesSecond
 ```
 
-## 10. Which modalities of the variable “demo” are significant in the first two principal components
+## 10. Which modalities of the variable demo are significant in the first two principal components.
+We are going to sort the addition of the first and second column of pca$quali.sup$cos2 to obtain which modalities of the variable demo are significant in the first two principal components. The result is Dictatorship (0.93), Stable (0.89) and Instable (0.22).
 
-```{r modalitites-variable-demo}
+```{r modalitites-variable-demo, echo = FALSE}
 significantModalitiesDemo <- sort(abs(pca$quali.sup$cos2[,1]) + abs(pca$quali.sup$cos2[,2]), decreasing=TRUE)
+significantModalitiesDemo
 ```
 
 ## 11. Use the NIPALS algorithm to obtain Principal Components in standardized PCA (as determined in previous questions) and with the results of the NIPALS, obtain the biplot of Rp. Interpret the results. Use unweighted data only.
-```{r nipals}
-library(nipals)
+In the next step, we are going to use nipals algorithm function by CHEMOMETRICS package and thanks to it, we can obtain the biplot of RP. We can see that ecks and death variables are correleated between them, as well as Farm and Gini.
 
+On the other hand, we can observe that Laboagr and gnpr are inverse correlated.
+
+```{r nipals, message = FALSE, echo = FALSE}
+library(nipals)
+nipals <- nipals(X.standarized, 3)
+scores <- nipals$scores
+loadings <- nipals$loadings
+biplot(scores, loadings)
 ```
 
 ## 12. Perform the Varimax rotation and plot the rotated variables. Interpret the new rotated components. Use unweighted data only.
 
-```{r varimax-rotation}
+We are going to use varimax function to obtain the variables that are correlated to the first component or the second one. In the first component we can observe that ecks, death and laboagr are correlated, but gnpr is inversely correlated to the previous variables. 
+
+In the second component, Isstab Farm and Gini are correlated.
+
+```{r varimax-rotation, message = FALSE, echo = FALSE, results = 'hide'}
 PSI = pca$ind$coord[,1:2]
 PHI = pca$var$coord[,1:2]
 PC.ROT <- varimax(PHI)
@@ -248,14 +290,22 @@ arrows(ze, ze, PHI.ROT[,1], PHI.ROT[,2], length = 0.07,col="blue")
 abline(h=0,v=0,col="gray")
 circle(1)
 ```
-```{r second-plot}
+
+```{r second-plot, message = FALSE, echo = FALSE, results = 'hide'}
 plot(PSI.ROT,type="n")
 text(PSI.ROT,labels=iden,col=as.numeric(imputedX$demo))
 abline(h=0,v=0,col="gray")
 ```
 
-## 13. Compute the scores of individuals in the rotated components Psi.rot. Interpret them (xxxx$ind$coord[,1:nd] = Psi.rot; dimdesc(xxxx,axes=1:nd). Use unweighted data only
-```{r scores-individuals}
+## 13. Compute the scores of individuals in the rotated components Psi.rot. Interpret them (xxxx$ind$coord[,1:nd] = Psi.rot; dimdesc(xxxx,axes=1:nd). Use unweighted data only.
+
+In the first dimension we have laboagr that has a positive correlation and Gnpr a negative one. It means that they are correlated inversely.
+
+In the second dimension, Gini, farm and Instab have positive correlation and they are correlated between them.
+
+We can observe that in second dimensions does not exist any variables that are inversely correlated between them.
+
+```{r scores-individuals, message = FALSE, results = 'hide'}
 pca$ind$coord <- pca$ind$coord[,1:2] %*% PC.ROT$rotmat
 FactoMineR::dimdesc(pca, axes=1:2)
 ```
