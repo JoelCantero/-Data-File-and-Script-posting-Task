@@ -1,4 +1,5 @@
 PCA<-function(X, weights, eucledian=TRUE) {
+  N <- diag(weights) 
   G = vector()
   for (i in 1:ncol(X.matrix)){
     G = c(G,weighted.mean(X.matrix[,i],weights))
@@ -35,6 +36,5 @@ PCA<-function(X, weights, eucledian=TRUE) {
   COR <-cor(X, PSI)
   plot(COR)
   arrows(originx, originy, COR[,1], COR[,2])
-  
   return(COR)
 }
