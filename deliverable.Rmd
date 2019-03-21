@@ -1,19 +1,22 @@
 ---
-title: "document"
-author: "Joel Cantero Priego"
+title: "Practice of PCA"
+author: "Marc Méndez Roca & Joel Cantero Priego"
 date: "18/3/2019"
-output: html_document
+output:
+  pdf_document: default
+  html_document: default
 ---
-```{r load-packages}
+```{r message=FALSE}
 library(mice)
+source("PCA.R")
 ```
 
-## Loading dataset and imputation miss values with MICE.
+## 1. Read again the Russet completed data set. Define as X matrix the one defined by the continuous variables. (Now, just using matrix operation)
 
 In this exercise we will use the Russet data set. In 1964 Russet tried to find the relation between political instability of countries and the economical and agricultural inequality. Russett collected this data to study relationships between Agricultural Inequality, Industrial Development and Political Instability. Russett's hypotheses can be formulated as follows: It is difficult for a country to escape dictatorship when its agricultural inequality is above-average and its industrial
 development below-average.
 
-The collected data refer to 47 countries and 9 variables on the period after the Second World War (???1945-1962). The Russett data set (Russett, 1964) are studied in Gifi (1990).
+The collected data refer to 47 countries and 9 variables on the period after the Second World War (1945-1962). The Russett data set (Russett, 1964) are studied in Gifi (1990).
  
 First of all, we are going to read 'Russet_ineqdata.txt' and put it to X variable. We have to set some parameters to read.table to function to indicate that:
 1. This file has a header (header=T).
@@ -22,45 +25,54 @@ First of all, we are going to read 'Russet_ineqdata.txt' and put it to X variabl
 
 First of all, we are going to read again the Russet completed data set. So we have to read the original table and then we are going to impute the NA values. For this reason, before using MICE, we are going to convert demo attribute as a level (0: Stable, 1: Instable, 3: Dictatorship), MICE will impute better if we use demo as a level factor before we impute it. We will use md.pattern function that is useful for investigating any structure of missing observations in the data (there are two NA values). This mentioned function pertains to mice package. 
 
-```{r upload-data}
+```{r upload}
 X <- read.table('Russet_ineqdata.txt', header=T, sep='\t', row.names=1)
 X$demo <- as.factor(X$demo)
 levels(X$demo) = c("Stable", "Instable", "Dictatorship")
-md.pattern(X)
 ```
 
-Thanks to md.pattern function, we can see there is some NA values that we have to deal with them. Once we have demo variable as a level, we can impute NA values using MICE function. We are going to use md.pattern again to ensure us that there is not any missing value left. 
+```{r using-mdpattern-plot}
+md.pattern(X)
+```
+Thanks to md.pattern function, we can see there is some NA values that we have to deal with them. Once we have demo variable as a level, we can impute NA values using MICE function. We are going to use MICE function because it imputes the missing values of the variable from the predicted values of the regression of the current variable with the remaining ones (similar to lineal regression imputation).
 
 ```{r using-mdpattern}
 imputedX <- complete(mice(X))
-imputedX
-md.pattern(imputedX)
 ```
 Once we have our imputed data, we are going to remove demo attribute level factor. Because we are going to use PCA, we are just interested in continuous variables. We are going to define our X.matrix defined by the continuous variables just using matrix operation.
 
 ```{r xmatrix}
 X.matrix <- as.matrix(imputedX[,0:8])
-X.matrix
 ```
+## 1. PCA function
+### a. Define the matrix N of weights of individuals (with uniform weights).
 
-## a. Define the matrix N of weights of individuals (with uniform weights).
+Once we have our complete dataset, we are going to define our weights vector with uniform weights (1) thanks to rep function. Rep functions will replicate a value as many times we set (number of rows of X.matrix). Then, we are going to define our N of weights of individuals thanks to diag function, that it will put our values (weights/sum(weights)) to matrix diagonal.
 
-Once we have our complete dataset, we are going to define our weights vector with uniform weights (1) thanks to rep function. Rep functions will replicate a value as many times we set (number of rows of X.matrix).
 
 ```{r weights}
 weights <- rep(1,nrow(X.matrix))
-sum(weights)
-N <- diag(weights/sum(weights))
-N
+N <- diag(weights/sum(weights)) #Normalized 
 ```
 
-## b. Compute the centroid G of individuals
+### b. Compute the centroid G of individuals.
+
+Once we have calculated the matrix N of weights, we are going to calculate our centroid G, using colMeans function. This function calculates the mean of all column values.
 
 ```{r centroid-g}
 G <-  colMeans(X.matrix)
-G
+
+G2 = vector()
+  for (i in 1:ncol(X)){
+      G2= c(G2,weighted.mean(X[,i],weights))
+  }
 ```
-## c. Compute the covariance or correlation matrix of X (be aware of dividing by sum(weights_i)).
+
+### c. Compute the covariance or correlation matrix of X (be aware of dividing by sum(weights_i)).
+
+Using cov function we are going to calculate the covariance matrix of X, always dividing our X values to sum(weights). On the other hand, we are going to use cor function to calculate the correlation matrix of X. 
+
+We can do it in two ways: using R functions or doing by ourselves manually. As we can see, both ways give us the same result.
 
 ```{r covariance-correlation}
 X.covariance <- cov(X.matrix)/sum(weights)
@@ -72,14 +84,14 @@ X.standarized <- scale(X.matrix, center = FALSE, scale=TRUE)
 X.cor.manual <- (t(X.standarized)%*%N%*%X.standarized)/sum(weights)
 ```
 
-## d. Compute the centered X matrix and standardized X matrix.
+### d. Compute the centered X matrix and standardized X matrix.
 
 ```{r centered-matrix}
 X.centered <- scale(X.matrix, scale=FALSE)
 X.standarized <- scale(X.matrix, center = FALSE, scale=TRUE)
 ```
 
-## e. Diagonalize X centered and standarized .
+### e. Diagonalize XtNX, with X centered and X standardized.
 
 ```{r diagonalize-matrix}
 X.centered.eig <- eigen(t(X.centered)%*%N%*%X.centered)
@@ -89,8 +101,57 @@ X.standarized.eig <- eigen(t(X.standarized)%*%N%*%X.standarized)
 X.standarized.eig$values
 ```
 
-##f. Do the screeplot of the eigenvalues and define the number of significant dimensions. How much is the retained information?
-```{r diagonalize-matrix}
-plot(X.centered.eig$values, type = "l")
-plot(X.standarized.eig$values, type = "l")
+###f. Do the screeplot of the eigenvalues and define the number of significant dimensions. How much is the retained information?
+```{r eigenvalues-screeplot}
+plot(X.centered.eig$values, type = "l", main="Screeplot of Russet")
+plot(X.standarized.eig$values, type = "l", main="Screeplot of Russet")
 ```
+
+###g. Compute the projections of individuals in the significant dimensions.
+```{r projections-individuals}
+#Psi <- X %*% eig$vector
+```
+###h. Compute the projection of variables in the significant dimensions.
+```{r projections-variables}
+#Phi <- sqrt(eig$values) * eig$vector
+```
+###i. Plot the individuals in the first factorial plane of Rp. Color the individuals according the “demo” variable.
+```{r plot-individuals}
+```
+###j. Plot the variables (as arrows) in the first factorial plane of Rn
+```{r plot-variables-as-arrows}
+```
+###k. According to the Russet complete data, justify which metric M is appropriate for this problem. 
+```{r plot-variables-as-arrows}
+```
+###i. Compute the correlation of the variables with the significant principal components and interpret them
+
+
+## 3. Redo 2, but taking the weight of Cuba equal to 0.
+
+Now, we are going to use our PCA function (that it is on PCA.R) but taking the weight of Cuba equal to 0. 
+```{r using-Cuba}
+weights <- rep(1,nrow(X.matrix))
+weights[11] <-0
+#myPCA(X.matrix, metric="Euclidean")
+```
+
+## 4. Now, study the sensibility of the performed PCA respect to considering Cuba as an outlier. Compute the correlations of the obtained significant principal components (Cuba 0 weight) with the previous obtained ones (all cases equal weights).
+
+## 5. Do again the PCA, but now using the library “FactoMineR” (be aware of using the completed data file with the “demo” factor as illustrative and the selected Metric).
+
+## 6. What is the country best represented in the first factorial plane?. And what is the worse?.
+
+## 7. What are the three countries most influencing the formation of the first principal component?, and what are the three countries most influencing the formation of the second principal component?
+
+## 8. What is the variable best represented in the first factorial plane?. And what is the worse?.
+
+## 9. What are the three variables most influencing the formation of the first principal component?, and what are the three variables most influencing the formation of the second principal component?
+
+## 10. Which modalities of the variable “demo” are significant in the first two principal components
+
+## 11. Use the NIPALS algorithm to obtain Principal Components in standardized PCA (as determined in previous questions) and with the results of the NIPALS, obtain the biplot of Rp. Interpret the results. Use unweighted data only.
+
+## 12. Perform the Varimax rotation and plot the rotated variables. Interpret the new rotated components. Use unweighted data only.
+
+## 13. Compute the scores of individuals in the rotated components Psi.rot. Interpret them (xxxx$ind$coord[,1:nd] = Psi.rot; dimdesc(xxxx,axes=1:nd). Use unweighted data only
