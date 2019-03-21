@@ -51,6 +51,17 @@ plot(X.standarized.eig$values, type = "l")
 #k. According to the Russet complete data, justify which metric M is appropriate for this problem.
 #l. Compute the correlation of the variables with the significant principal components and interpret them.
  
+
+source("Data-File-and-Script-posting-Task/PCA.R")
+
+
+weights <- rep(1,nrow(X.matrix))
+weights <- weights/sum(weights) #Normalized 
+N <- diag(weights) 
+Cor.Normal <- PCA(X.matrix, weights, eucledian=TRUE)
  
- 
- 
+weights <- rep(1,nrow(X.matrix))
+weights[11] <-0
+weights <- weights/sum(weights) #Normalized 
+N <- diag(weights) 
+Cor.Cuba <- PCA(X.matrix, weights, eucledian=TRUE)

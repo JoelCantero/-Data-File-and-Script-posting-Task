@@ -35,4 +35,6 @@ PCA<-function(X, weights, eucledian=TRUE) {
   COR <-cor(X, PSI)
   plot(COR)
   arrows(originx, originy, COR[,1], COR[,2])
+  
+  return(COR)
 }

@@ -1,6 +1,6 @@
 ---
 title: "Practice of PCA"
-author: "Marc Méndez Roca & Joel Cantero Priego"
+author: "Marc M??ndez Roca & Joel Cantero Priego"
 date: "18/3/2019"
 output:
   html_document: default
@@ -122,7 +122,7 @@ PSI <- X %*% X.vector
 PHI <- sqrt(X.values)*X.vector
 PHI
 ```
-###i. Plot the individuals in the first factorial plane of Rp. Color the individuals according the “demo” variable.
+###i. Plot the individuals in the first factorial plane of Rp. Color the individuals according the ???demo??? variable.
 ```{r plot-individuals}
 plot(PSI, col=c('green', 'orange', 'red')[imputedX$demo])
 legend(x="topright", legend=c('Stable', 'Instable', 'Dictatorship'), fill=c('green', 'orange', 'red'))
@@ -143,7 +143,7 @@ Standarized is the special one because it is more dispars
 
 
 ```{r compute-correlation-variables}
-COR <-cor(X, PSI)
+COR.Normal <-cor(X, PSI)
 plot(COR)
 arrows(originx, originy, COR[,1], COR[,2])
 ```
@@ -154,12 +154,12 @@ Now, we are going to use our PCA function (that it is on PCA.R) but taking the w
 ```{r using-Cuba}
 weights <- rep(1,nrow(X.matrix))
 weights[11] <-0
-PCA(X.matrix, weights, eucledian=TRUE)
+Cor.Cuba <- PCA(X.matrix, weights, eucledian=TRUE)
 ```
 
 ## 4. Now, study the sensibility of the performed PCA respect to considering Cuba as an outlier. Compute the correlations of the obtained significant principal components (Cuba 0 weight) with the previous obtained ones (all cases equal weights).
 
-## 5. Do again the PCA, but now using the library “FactoMineR” (be aware of using the completed data file with the “demo” factor as illustrative and the selected Metric).
+## 5. Do again the PCA, but now using the library ???FactoMineR??? (be aware of using the completed data file with the ???demo??? factor as illustrative and the selected Metric).
 
 ## 6. What is the country best represented in the first factorial plane?. And what is the worse?.
 
@@ -169,7 +169,101 @@ PCA(X.matrix, weights, eucledian=TRUE)
 
 ## 9. What are the three variables most influencing the formation of the first principal component?, and what are the three variables most influencing the formation of the second principal component?
 
-## 10. Which modalities of the variable “demo” are significant in the first two principal components
+## 10. Which modalities of the variable ???demo??? are significant in the first two Show in New WindowClear OutputExpand/Collapse Output
+   Gini farm Gnpr Laboagr Instab
+43    1    1    1       1      1
+3     1    1    1       1      1
+1     1    1    1       1      1
+      0    0    0       0      0
+   Death demo ecks Rent  
+43     1    1    1    1 0
+3      1    1    1    0 1
+1      1    1    0    1 1
+       0    0    1    3 4
+R Console
+
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+ iter imp variable
+  1   1  Rent  ecks
+  1   2  Rent  ecks
+  1   3  Rent  ecks
+  1   4  Rent  ecks
+  1   5  Rent  ecks
+  2   1  Rent  ecks
+  2   2  Rent  ecks
+  2   3  Rent  ecks
+  2   4  Rent  ecks
+  2   5  Rent  ecks
+  3   1  Rent  ecks
+  3   2  Rent  ecks
+  3   3  Rent  ecks
+  3   4  Rent  ecks
+  3   5  Rent  ecks
+  4   1  Rent  ecks
+  4   2  Rent  ecks
+  4   3  Rent  ecks
+  4   4  Rent  ecks
+  4   5  Rent  ecks
+  5   1  Rent  ecks
+  5   2  Rent  ecks
+  5   3  Rent  ecks
+  5   4  Rent  ecks
+  5   5  Rent  ecks
+Show in New WindowClear OutputExpand/Collapse Output
+[1]  71.36809  92.93191  21.81489
+[4] 559.25532  42.42553  12.40851
+[7]  24.06383 133.72340
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+            [,1]         [,2]
+[1,] -0.76056042 -0.790294812
+[2,] -0.55443300 -0.469524166
+[3,] -0.19062958  0.008423985
+[4,]  0.38859686 -0.366953389
+[5,] -0.29589375  0.315179843
+[6,] -0.10302753 -0.278954182
+[7,] -0.16254935  0.109632215
+[8,] -0.06550866  0.049994594
+            [,3]        [,4]
+[1,]  0.15020872 -0.27860264
+[2,]  0.10039044 -0.31401518
+[3,] -0.62769606 -0.63892404
+[4,] -0.33751887  0.08975401
+[5,]  0.30951713  0.02325504
+[6,]  0.01268691  0.39007062
+[7,] -0.14232330  0.14570262
+[8,] -0.12504480  0.05861879
+            [,5]        [,6]
+[1,]  0.36150511  0.03790167
+[2,]  0.31473544  0.02193394
+[3,] -0.69321962 -0.13826443
+[4,]  0.22858233 -0.13393596
+[5,] -0.14846904  0.03214078
+[6,] -0.35438109  0.02197880
+[7,]  0.09809104 -0.30930726
+[8,]  0.04866867  0.15188904
+             [,7]          [,8]
+[1,] -0.023925254  1.2063442675
+[2,]  0.073949582 -0.8357049051
+[3,]  0.091880554  0.0298362369
+[4,]  0.675918631  0.0164698008
+[5,]  0.548269230  0.0411145292
+[6,] -0.012158421 -0.0539307355
+[7,] -0.031917986  0.0004009717
+[8,]  0.008184452  0.0013647344
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+Show in New WindowClear OutputExpand/Collapse Output
+
+
+principal components
 
 ## 11. Use the NIPALS algorithm to obtain Principal Components in standardized PCA (as determined in previous questions) and with the results of the NIPALS, obtain the biplot of Rp. Interpret the results. Use unweighted data only.
 
