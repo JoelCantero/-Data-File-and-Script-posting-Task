@@ -3,8 +3,8 @@ title: "Practice of PCA"
 author: "Marc Méndez Roca & Joel Cantero Priego"
 date: "18/3/2019"
 output:
-  pdf_document: default
   html_document: default
+  pdf_document: default
 ---
 ```{r message=FALSE}
 library(mice)
@@ -52,7 +52,8 @@ Once we have our complete dataset, we are going to define our weights vector wit
 
 ```{r weights}
 weights <- rep(1,nrow(X.matrix))
-N <- diag(weights/sum(weights)) #Normalized 
+weights <- weights/sum(weights) #Normalized 
+N <- diag(weights) 
 ```
 
 ### b. Compute the centroid G of individuals.
@@ -60,12 +61,11 @@ N <- diag(weights/sum(weights)) #Normalized
 Once we have calculated the matrix N of weights, we are going to calculate our centroid G, using colMeans function. This function calculates the mean of all column values.
 
 ```{r centroid-g}
-G <-  colMeans(X.matrix)
-
-G2 = vector()
-  for (i in 1:ncol(X)){
-      G2= c(G2,weighted.mean(X[,i],weights))
+G = vector()
+for (i in 1:ncol(X.matrix)){
+      G = c(G,weighted.mean(X.matrix[,i],weights))
   }
+G
 ```
 
 ### c. Compute the covariance or correlation matrix of X (be aware of dividing by sum(weights_i)).
@@ -75,57 +75,78 @@ Using cov function we are going to calculate the covariance matrix of X, always 
 We can do it in two ways: using R functions or doing by ourselves manually. As we can see, both ways give us the same result.
 
 ```{r covariance-correlation}
-X.covariance <- cov(X.matrix)/sum(weights)
-X.centered <- scale(X.matrix, scale=FALSE)
-X.cov.manual <- (t(X.centered)%*%N%*%X.centered)/sum(weights)
+X.centered <- X.matrix - rep(G, rep.int(nrow(X.matrix), ncol(X.matrix)))
+X.covariance = (t(X.centered)%*%N%*%X.centered)/sum(weights)
+X.standarized <- scale(X.matrix)
+X.correlation <- (t(X.standarized)%*%N%*%X.standarized)/sum(weights)
 
-X.cor <- cor(X.matrix)/sum(weights)
-X.standarized <- scale(X.matrix, center = FALSE, scale=TRUE)
-X.cor.manual <- (t(X.standarized)%*%N%*%X.standarized)/sum(weights)
+euclidean <- TRUE
+
+if (euclidean) {
+  X <- X.standarized
+  S <- X.correlation
+} else {
+  X <- X.centered
+  S <- X.covariance
+}
 ```
 
 ### d. Compute the centered X matrix and standardized X matrix.
 
 ```{r centered-matrix}
-X.centered <- scale(X.matrix, scale=FALSE)
-X.standarized <- scale(X.matrix, center = FALSE, scale=TRUE)
+X.centered <- X - rep(G, rep.int(nrow(X), ncol(X)))
+X.standarized <- scale(X, center = FALSE, scale=TRUE)
 ```
 
 ### e. Diagonalize XtNX, with X centered and X standardized.
 
 ```{r diagonalize-matrix}
-X.centered.eig <- eigen(t(X.centered)%*%N%*%X.centered)
-X.centered.eig$values
-
-X.standarized.eig <- eigen(t(X.standarized)%*%N%*%X.standarized)
-X.standarized.eig$values
+X.svd <- svd(S)
+X.values = X.svd$d
+X.vector <- X.svd$u
 ```
 
 ###f. Do the screeplot of the eigenvalues and define the number of significant dimensions. How much is the retained information?
 ```{r eigenvalues-screeplot}
-plot(X.centered.eig$values, type = "l", main="Screeplot of Russet")
-plot(X.standarized.eig$values, type = "l", main="Screeplot of Russet")
+plot(X.values, type = "l", main="Screeplot of Russet")
 ```
 
 ###g. Compute the projections of individuals in the significant dimensions.
 ```{r projections-individuals}
-#Psi <- X %*% eig$vector
+PSI <- X %*% X.vector
 ```
 ###h. Compute the projection of variables in the significant dimensions.
 ```{r projections-variables}
-#Phi <- sqrt(eig$values) * eig$vector
+
+
+PHI <- sqrt(X.values)*X.vector
+PHI
 ```
 ###i. Plot the individuals in the first factorial plane of Rp. Color the individuals according the “demo” variable.
 ```{r plot-individuals}
+plot(PSI, col=c('green', 'orange', 'red')[imputedX$demo])
+legend(x="topright", legend=c('Stable', 'Instable', 'Dictatorship'), fill=c('green', 'orange', 'red'))
 ```
 ###j. Plot the variables (as arrows) in the first factorial plane of Rn
 ```{r plot-variables-as-arrows}
+originx <- rep(0, ncol(PHI))
+originy <- rep(0, ncol(PHI))
+plot(PHI, xlim=c(min(PHI), max(PHI)), ylim=c(min(PHI), max(PHI)))
+arrows(originx, originy, PHI[,1], PHI[,2])
 ```
-###k. According to the Russet complete data, justify which metric M is appropriate for this problem. 
-```{r plot-variables-as-arrows}
-```
-###i. Compute the correlation of the variables with the significant principal components and interpret them
+###k. According to the Russet complete data, justify which metric M is appropriate for this problem.
 
+Standarized is the special one because it is more dispars
+
+###l. Compute the correlation of the variables with the significant principal components and interpret them.
+
+
+
+```{r compute-correlation-variables}
+COR <-cor(X, PSI)
+plot(COR)
+arrows(originx, originy, COR[,1], COR[,2])
+```
 
 ## 3. Redo 2, but taking the weight of Cuba equal to 0.
 
@@ -133,7 +154,7 @@ Now, we are going to use our PCA function (that it is on PCA.R) but taking the w
 ```{r using-Cuba}
 weights <- rep(1,nrow(X.matrix))
 weights[11] <-0
-#myPCA(X.matrix, metric="Euclidean")
+PCA(X.matrix, weights, eucledian=TRUE)
 ```
 
 ## 4. Now, study the sensibility of the performed PCA respect to considering Cuba as an outlier. Compute the correlations of the obtained significant principal components (Cuba 0 weight) with the previous obtained ones (all cases equal weights).
